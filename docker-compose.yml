@@ -129,7 +129,7 @@ services:
       - PGID=1000
       - TZ=America/New_York
     volumes:
-      - ${COREDIR}/syncthing/config:/config
+      - /ssd/syncthing_config:/config # USB SSD, change this to where you want your files.
     ports:
       - 8384:8384
       - 22000:22000/tcp
