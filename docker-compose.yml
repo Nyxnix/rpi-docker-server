@@ -8,7 +8,7 @@ version: '3.8'
 
 # # Pihole web password
 # WEBPASSWORD=
-# # Where you want to store all your persistent data (needs trailing / !!!)
+# # Where you want to store all your persistent data
 # COREDIR=
 
 services:
