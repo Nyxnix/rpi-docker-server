@@ -1,0 +1,74 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+sensor:
+  - platform: template
+    sensors:
+      cpu_temperature_celsius:
+        friendly_name: "CPU Temperature (Celsius)"
+        unit_of_measurement: "°C"
+        value_template: "{{ ((states('sensor.192_168_1_80_cpu_thermal_1_temperature') | float - 32) * 5 / 9) | round(1) }}"
+
+  - platform: template
+    sensors:
+      monthly_power_usage:
+        friendly_name: "Monthly Power Usage"
+        unit_of_measurement: "kWh"
+        value_template: >
+          {% set ac_energy_val = states('sensor.shellyplugus_d4d4da092014_switch_0_energy') %}
+          {% set desk_energy_val = states('sensor.shellyplugus_d4d4da0931b0_switch_0_energy') %}
+          {% if ac_energy_val != 'unknown' and desk_energy_val != 'unknown' %}
+            {{ (ac_energy_val | float + desk_energy_val | float) | round(2) }}
+          {% else %}
+            Unknown
+          {% endif %}
+
+      monthly_power_cost:
+        friendly_name: "Monthly Power Cost"
+        unit_of_measurement: "$"
+        value_template: >
+          {% set energy_usage = states('sensor.monthly_power_usage') | float %}
+          {% set rate_per_kwh = 0.14 %}
+          {% if energy_usage != 'unknown' %}
+            {{ (energy_usage * rate_per_kwh) | round(2) }}
+          {% else %}
+            Unknown
+          {% endif %}
+
+      monthly_power_usage_reset:
+        friendly_name: "Monthly Power Usage Reset"
+        value_template: >
+          {% set now_day = now().day %}
+          {% set now_month = now().month %}
+          {% set now_year = now().year %}
+          {% set start_of_month = now().replace(day=1, hour=0, minute=0, second=0) %}
+          {% set end_of_month = start_of_month + timedelta(days=32 - start_of_month.day) - timedelta(seconds=1) %}
+          {% if now_day == 1 %}
+            1
+          {% else %}
+            0
+          {% endif %}
+
+recorder:
+  db_url: mysql://USERNAME:PASSWORD@mariadb/DBNAME?charset=utf8&unix_socket=/var/run/mysqld/mysqld.sock
+  include:
+    entities:
+      - sensor.monthly_power_usage
+      - sensor.monthly_power_cost
+      - sensor.*
+  purge_keep_days: 730
+  commit_interval: 60
+
+homeassistant:
+  customize:
+    sensor.monthly_power_usage:
+      friendly_name: "Monthly Power Usage"
+      icon: "mdi:flash"

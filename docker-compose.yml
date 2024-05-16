@@ -24,7 +24,25 @@ services:
       - mqtt
       - esphome
     privileged: true
-  
+
+# Add this to configuration.yaml in HA
+# recorder:
+#  db_url: mysql://USERNAME:PASSWORD@mariadb/DBNAME?charset=utf8&unix_socket=/var/run/mysqld/mysqld.sock
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SQLRPASS}
+      MYSQL_DATABASE: ${DBNAME}
+      MYSQL_USER: ${SQLUSER}
+      MYSQL_PASSWORD: ${SQLPASS}
+    volumes:
+      - ${COREDIR}/mariadb:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
   binfmt:
     image: tonistiigi/binfmt
     privileged: true
