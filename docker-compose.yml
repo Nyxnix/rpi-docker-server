@@ -1,16 +1,5 @@
 version: '3.8'
 
-# # .env template
-# LASTFM_API_KEY=
-# LASTFM_API_SECRET=
-# LASTFM_USERNAME=
-# LASTFM_PASSWORD=
-
-# # Pihole web password
-# WEBPASSWORD=
-# # Where you want to store all your persistent data
-# COREDIR=
-
 services:
   homeassistant:
     image: homeassistant/home-assistant:latest
@@ -20,9 +9,9 @@ services:
       - "8123:8123"
     volumes:
       - ${COREDIR}/homeassistant/config:/config
+      - /run/dbus:/run/dbus:ro
     depends_on:
       - mqtt
-      - esphome
     privileged: true
 
 # Add this to configuration.yaml in HA
@@ -49,68 +38,6 @@ services:
     command: --install all
     restart: "no"
 
-  ytmusicscrobbler: # Need to connect to the console in portainer or cli and follow steps printed to auth google account
-    image: micahfocht/ytmusicscrobbler
-    container_name: ytmusicscrobbler
-    environment:
-      - LASTFM_API_KEY=${LASTFM_API_KEY}
-      - LASTFM_API_SECRET=${LASTFM_API_SECRET}
-      - LASTFM_USERNAME=${LASTFM_USERNAME}
-      - LASTFM_PASSWORD=${LASTFM_PASSWORD}
-    depends_on:
-      - binfmt
-    restart: "unless-stopped"
-    volumes:
-      - ${COREDIR}/ytmusicscrobbler:/config
-
-  pihole:
-    container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "8080:80/tcp"
-    environment:
-      TZ: 'America/New_York'
-      WEBPASSWORD: ${WEBPASSWORD}
-    volumes:
-      - ${COREDIR}/pihole/etc:/etc/pihole
-      - ${COREDIR}/pihole/dnsmasq:/etc/dnsmasq.d
-
-  mqtt:
-    image: eclipse-mosquitto:latest
-    container_name: mqtt
-    restart: unless-stopped
-    ports:
-      - "1883:1883"
-    environment:
-      TZ: 'America/New_York'
-    volumes:
-      - ${COREDIR}/mqtt:/mosquitto/config
-
-# Need to figure out how to automate this
-# Set the /mosquitto/config/mosquitto.conf file to the following
-# listener 1883
-# persistence true
-# persistence_file mosquitto.db
-# allow_anonymous false
-
-# # mosquitto_passwd -c /mosquitto/config/pd USERNAME
-# password_file /mosquitto/config/pd
-
-# Then run
-# mosquitto_passwd -c /mosquitto/config/pd USERNAME
-
-  esphome:
-    image: esphome/esphome:latest
-    container_name: esphome
-    restart: unless-stopped
-    volumes:
-      - ${COREDIR}/esphome/config:/config
-    ports:
-      - "6052:6052"
-
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
@@ -127,30 +54,3 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${COREDIR}/watchtower:/config.json
-
-  vaultwarden:
-    image: vaultwarden/server:latest
-    container_name: vaultwarden
-    restart: unless-stopped
-    volumes:
-      - ${COREDIR}/vw-data/:/data/
-    ports:
-      - "80:80"
-
-  syncthing:
-    image: lscr.io/linuxserver/syncthing:latest
-    container_name: syncthing
-    hostname: syncthing
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/New_York
-    volumes:
-      - /ssd/syncthing_config:/config # USB SSD, change this to where you want your files.
-    ports:
-      - 8384:8384
-      - 22000:22000/tcp
-      - 22000:22000/udp
-      - 21027:21027/udp
-    restart: unless-stopped
